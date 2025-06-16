@@ -4,7 +4,9 @@
 """
 Escriba el codigo que ejecute la accion solicitada en cada pregunta.
 """
-
+import os
+import zipfile
+import pandas as pd
 
 def pregunta_01():
     """
@@ -71,3 +73,39 @@ def pregunta_01():
 
 
     """
+    zip_path = os.path.join("files", "input.zip")
+    unzip_base = "input"
+
+    # 1. Descomprimir solo si no existe la carpeta 'input'
+    if not os.path.exists(unzip_base):
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(unzip_base)
+
+    # 2. Detectar si hay una subcarpeta intermedia (input/input)
+    contenido = os.listdir(unzip_base)
+    if len(contenido) == 1 and os.path.isdir(os.path.join(unzip_base, contenido[0])):
+        real_input_path = os.path.join(unzip_base, contenido[0])  # input/input
+    else:
+        real_input_path = unzip_base
+
+    # 3. Cargar archivos desde subdirectorios
+    def cargar_dataset(ruta_base):
+        datos = []
+        base_path = os.path.join(real_input_path, ruta_base)
+        for sentimiento in ['positive', 'negative', 'neutral']:
+            ruta = os.path.join(base_path, sentimiento)
+            for archivo in os.listdir(ruta):
+                archivo_path = os.path.join(ruta, archivo)
+                with open(archivo_path, 'r', encoding='utf-8') as f:
+                    frase = f.read().strip()
+                    datos.append({"phrase": frase, "target": sentimiento})
+        return pd.DataFrame(datos)
+
+    # 4. Crear y guardar datasets
+    df_train = cargar_dataset("train")
+    df_test = cargar_dataset("test")
+
+    os.makedirs("files/output", exist_ok=True)
+    df_train.to_csv("files/output/train_dataset.csv", index=False)
+    df_test.to_csv("files/output/test_dataset.csv", index=False)
+    
